@@ -201,6 +201,27 @@ h1 {
 }
 .level-card h2 { font-family: 'Bungee', cursive; color: var(--amber); font-size: 1.6rem; margin-bottom: 10px; }
 .level-card .new-chars { font-family: 'Bungee', cursive; font-size: 2rem; color: var(--cream); letter-spacing: 0.3em; margin: 14px 0 20px; }
+/* ---------- Facit-fusklappen ---------- */
+.cheat-card {
+  background: var(--ink-2); border: 3px solid var(--ink-3); border-radius: 24px;
+  padding: 18px; max-width: 440px; width: 100%; max-height: 80dvh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  animation: pop-in 0.25s ease-out;
+}
+.cheat-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; }
+.cheat-head h2 { font-family: 'Bungee', cursive; color: var(--amber); font-size: 1.3rem; }
+.cheat-head .btn { padding: 8px 14px; font-size: 0.95rem; }
+.cheat-grid {
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px;
+}
+.cheat-item {
+  background: var(--ink); border: 2px solid var(--ink-3); border-radius: 10px;
+  padding: 7px 4px; text-align: center;
+}
+.cheat-item .ch { font-family: 'Bungee', cursive; font-size: 1.05rem; color: var(--cream); }
+.cheat-item .code { color: var(--amber); font-size: 0.95rem; letter-spacing: 0.12em; }
 .confetti { position: fixed; top: -30px; font-size: 1.6rem; animation: fall linear forwards; z-index: 60; pointer-events: none; }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.6; } }
 </style>
@@ -250,6 +271,7 @@ h1 {
   <section class="view" id="view-tapper">
     <div class="topbar">
       <button class="btn ghost" data-nav="home">← Hem</button>
+      <button class="btn" id="cheatBtn">📖 Facit</button>
       <button class="btn ghost" id="clearTapper">🗑 Rensa</button>
     </div>
     <div class="tapper-area">
@@ -273,6 +295,17 @@ h1 {
     <div class="alphabet" id="alphaDigits"></div>
   </section>
 
+</div>
+
+<!-- Facit (fusklapp för sändarnyckeln) -->
+<div class="overlay" id="cheatOverlay">
+  <div class="cheat-card">
+    <div class="cheat-head">
+      <h2>FACIT 📖</h2>
+      <button class="btn ghost" id="cheatClose">✕ Stäng</button>
+    </div>
+    <div class="cheat-grid" id="cheatGrid"></div>
+  </div>
 </div>
 
 <!-- Nivå upp! -->
@@ -595,6 +628,19 @@ document.getElementById('clearTapper').addEventListener('click', () => {
   decodedEl.innerHTML = '&nbsp;'; bufferEl.innerHTML = '&nbsp;';
   clearTimeout(gapTimer); clearTimeout(spaceTimer);
 });
+
+/* ---- Facit (fusklapp) ---- */
+const cheatOverlay = document.getElementById('cheatOverlay');
+const cheatGrid = document.getElementById('cheatGrid');
+for (const [ch, code] of Object.entries(MORSE)) {
+  const item = document.createElement('div');
+  item.className = 'cheat-item';
+  item.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(code)}</div>`;
+  cheatGrid.appendChild(item);
+}
+document.getElementById('cheatBtn').addEventListener('click', () => cheatOverlay.classList.add('show'));
+document.getElementById('cheatClose').addEventListener('click', () => cheatOverlay.classList.remove('show'));
+cheatOverlay.addEventListener('click', e => { if (e.target === cheatOverlay) cheatOverlay.classList.remove('show'); });
 
 /* ================= ALFABETET ================= */
 function buildAlphabet() {
