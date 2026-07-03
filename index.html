@@ -711,7 +711,8 @@ function keyUp(e) {
 function updateDecodedUI() {
   decodedEl.textContent = decodedText || ' ';
   bufferEl.textContent = symbolBuf ? pretty(symbolBuf) : ' ';
-  document.getElementById('clearTapper').classList.toggle('show', decodedText.length > 0 || symbolBuf.length > 0);
+  // Krysset visas först när det finns text i fältet att rensa
+  document.getElementById('clearTapper').classList.toggle('show', decodedText.length > 0);
 }
 function finishLetter() {
   if (!symbolBuf) return;
