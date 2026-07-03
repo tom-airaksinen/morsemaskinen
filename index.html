@@ -354,7 +354,26 @@ const SPEEDS = { slow: 150, medium: 100, fast: 65 }; // ms per enhet (dit)
 let ctx = null;
 let flashTimeouts = [];
 
+/* Hörs även när iPhone står på ljudlös: be om "mediauppspelning"
+   (som Spotify/YouTube) istället för vanligt webbljud. */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let silentLoop = null;
+function unlockSilentSwitch() {
+  // Nyare iOS (17+): officiellt API för att ignorera ljudlös-knappen
+  if (navigator.audioSession) {
+    try { navigator.audioSession.type = 'playback'; return; } catch (e) {}
+  }
+  // Äldre iOS: en tyst <audio>-loop byter ljudläge så WebAudio hörs ändå
+  if (!silentLoop) {
+    silentLoop = new Audio(SILENT_WAV);
+    silentLoop.loop = true;
+    silentLoop.setAttribute('x-webkit-airplay', 'deny');
+  }
+  if (silentLoop.paused) silentLoop.play().catch(() => {});
+}
+
 function ensureCtx() {
+  unlockSilentSwitch();
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
