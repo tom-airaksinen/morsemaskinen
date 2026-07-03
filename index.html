@@ -331,6 +331,8 @@ const MORSE = {
   '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.'
 };
 const MORSE_REV = Object.fromEntries(Object.entries(MORSE).map(([k,v]) => [v,k]));
+// Visningsordning: bokstäver A–Ö först, sen siffror (JS lägger annars sifferknycklar först)
+const CHAR_ORDER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ0123456789'.split('');
 const pretty = code => code.replace(/\./g,'·').replace(/-/g,'−');
 
 // Nivåer: nya tecken per nivå (lättast först)
@@ -632,10 +634,10 @@ document.getElementById('clearTapper').addEventListener('click', () => {
 /* ---- Facit (fusklapp) ---- */
 const cheatOverlay = document.getElementById('cheatOverlay');
 const cheatGrid = document.getElementById('cheatGrid');
-for (const [ch, code] of Object.entries(MORSE)) {
+for (const ch of CHAR_ORDER) {
   const item = document.createElement('div');
   item.className = 'cheat-item';
-  item.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(code)}</div>`;
+  item.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(MORSE[ch])}</div>`;
   cheatGrid.appendChild(item);
 }
 document.getElementById('cheatBtn').addEventListener('click', () => cheatOverlay.classList.add('show'));
@@ -655,10 +657,10 @@ function playAlphaCard(ch) {
 function buildAlphabet() {
   const letters = document.getElementById('alphaLetters');
   const digits = document.getElementById('alphaDigits');
-  for (const [ch, code] of Object.entries(MORSE)) {
+  for (const ch of CHAR_ORDER) {
     const card = document.createElement('button');
     card.className = 'alpha-card';
-    card.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(code)}</div>`;
+    card.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(MORSE[ch])}</div>`;
     card.addEventListener('click', () => playAlphaCard(ch));
     alphaCards[ch] = card;
     (/[0-9]/.test(ch) ? digits : letters).appendChild(card);
