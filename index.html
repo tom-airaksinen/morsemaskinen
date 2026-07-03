@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Morsemaskinen</title>
+<meta name="theme-color" content="#0d1120">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Morsemaskinen">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%23ffb627'/%3E%3Ccircle cx='30' cy='50' r='8' fill='%230d1120'/%3E%3Crect x='48' y='42' width='28' height='16' rx='8' fill='%230d1120'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d1120;
+  --ink-2: #161c33;
+  --ink-3: #1f2745;
+  --amber: #ffb627;
+  --amber-hot: #ffd97a;
+  --cream: #fff3d6;
+  --muted: #8d94b8;
+  --good: #6fe08a;
+  --bad: #ff6b6b;
+  --key-shadow: #070a14;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: 'Fredoka', sans-serif;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -10%, #232c52 0%, transparent 60%),
+    repeating-linear-gradient(90deg, transparent 0 34px, rgba(255,182,39,0.03) 34px 40px, transparent 40px 52px, rgba(255,182,39,0.03) 52px 70px),
+    var(--ink);
+  color: var(--cream);
+  min-height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  overflow-x: hidden;
+}
+.app { width: 100%; max-width: 540px; display: flex; flex-direction: column; flex: 1; }
+
+/* ---------- Rubrik ---------- */
+header { text-align: center; padding: 10px 0 4px; cursor: pointer; }
+h1 {
+  font-family: 'Bungee', cursive;
+  font-size: clamp(1.5rem, 7vw, 2.4rem);
+  color: var(--amber);
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 24px rgba(255,182,39,0.45), 0 3px 0 #7a4d00;
+  line-height: 1.1;
+}
+.tagline { color: var(--muted); font-size: 0.95rem; margin-top: 2px; letter-spacing: 0.14em; }
+
+/* ---------- Signallampan ---------- */
+.lamp-wrap { display: flex; justify-content: center; padding: 18px 0 10px; }
+.lamp {
+  width: clamp(90px, 26vw, 130px);
+  height: clamp(90px, 26vw, 130px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3a4266, #1a2038 65%);
+  border: 6px solid var(--ink-3);
+  box-shadow: inset 0 -10px 22px rgba(0,0,0,0.55), 0 6px 0 var(--key-shadow);
+  transition: background 0.06s, box-shadow 0.06s;
+  position: relative;
+}
+.lamp::after {
+  content: ''; position: absolute; top: 14%; left: 20%;
+  width: 26%; height: 16%; border-radius: 50%;
+  background: rgba(255,255,255,0.16); filter: blur(2px);
+}
+.lamp.on {
+  background: radial-gradient(circle at 40% 35%, #fff6dd, var(--amber) 60%, #e08a00);
+  box-shadow: 0 0 46px 14px rgba(255,182,39,0.55), 0 0 110px 34px rgba(255,182,39,0.22), 0 6px 0 var(--key-shadow);
+}
+.lamp.good { background: radial-gradient(circle at 40% 35%, #ecffef, var(--good) 60%, #1f9e46); box-shadow: 0 0 46px 12px rgba(111,224,138,0.5), 0 6px 0 var(--key-shadow); }
+.lamp.bad  { background: radial-gradient(circle at 40% 35%, #ffe3e3, var(--bad) 60%, #b52929); box-shadow: 0 0 46px 12px rgba(255,107,107,0.5), 0 6px 0 var(--key-shadow); }
+
+/* ---------- Knappar ---------- */
+.btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--amber-hot), var(--amber));
+  border: none;
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: 0 5px 0 #a86e00, 0 8px 18px rgba(0,0,0,0.35);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #a86e00; }
+.btn.ghost {
+  background: var(--ink-2);
+  color: var(--cream);
+  box-shadow: 0 5px 0 var(--key-shadow);
+  border: 2px solid var(--ink-3);
+}
+.btn.ghost:active { box-shadow: 0 1px 0 var(--key-shadow); }
+.menu { display: flex; flex-direction: column; gap: 14px; padding: 18px 6px; }
+.menu .btn { font-size: 1.3rem; padding: 20px; text-align: left; display: flex; align-items: center; gap: 14px; }
+.menu .btn .emoji { font-size: 1.6rem; }
+.menu .btn small { display: block; font-weight: 400; font-size: 0.85rem; opacity: 0.75; }
+
+/* ---------- Hastighetsväljare ---------- */
+.speed-row { display: flex; gap: 10px; justify-content: center; padding: 10px 0 4px; }
+.pill {
+  font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1rem;
+  background: var(--ink-2); color: var(--muted);
+  border: 2px solid var(--ink-3); border-radius: 999px;
+  padding: 10px 16px; cursor: pointer; transition: all 0.15s;
+}
+.pill.active { background: var(--amber); color: var(--ink); border-color: var(--amber); box-shadow: 0 0 18px rgba(255,182,39,0.4); }
+.speed-label { text-align: center; color: var(--muted); font-size: 0.85rem; letter-spacing: 0.1em; padding-top: 12px; }
+
+/* ---------- Vyer ---------- */
+.view { display: none; flex-direction: column; flex: 1; animation: pop-in 0.25s ease-out; }
+.view.active { display: flex; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0 8px; }
+.topbar .btn { padding: 10px 16px; font-size: 1rem; }
+.stat { font-size: 1.05rem; color: var(--cream); background: var(--ink-2); border: 2px solid var(--ink-3); border-radius: 14px; padding: 8px 14px; }
+.stat b { color: var(--amber); }
+
+/* ---------- Träningsläget ---------- */
+.prompt { text-align: center; min-height: 3.2em; padding: 4px 0; font-size: 1.2rem; }
+.prompt .reveal { font-family: 'Bungee', cursive; font-size: 1.6rem; color: var(--amber); }
+.prompt .morse-glyph { letter-spacing: 0.2em; font-size: 1.4rem; }
+.progress-track { height: 14px; background: var(--ink-2); border-radius: 999px; border: 2px solid var(--ink-3); overflow: hidden; margin: 6px 2px 12px; }
+.progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber), var(--amber-hot)); border-radius: 999px; transition: width 0.35s ease; box-shadow: 0 0 12px rgba(255,182,39,0.6); }
+.keypad { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 8px; padding-bottom: 10px; }
+.key {
+  font-family: 'Bungee', cursive; font-size: 1.25rem;
+  color: var(--cream); background: var(--ink-2);
+  border: 2px solid var(--ink-3); border-radius: 14px;
+  padding: 14px 0; cursor: pointer;
+  box-shadow: 0 4px 0 var(--key-shadow);
+  transition: transform 0.06s, box-shadow 0.06s, background 0.15s;
+}
+.key:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-shadow); }
+.key.hint { background: var(--good); color: var(--ink); border-color: var(--good); animation: pulse 0.8s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 4px 0 var(--key-shadow), 0 0 22px rgba(111,224,138,0.8); } }
+.play-row { display: flex; gap: 10px; justify-content: center; padding-bottom: 14px; }
+
+/* ---------- Sändarnyckeln ---------- */
+.tapper-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.decoded {
+  width: 100%; min-height: 76px;
+  background: var(--ink-2); border: 2px solid var(--ink-3); border-radius: 16px;
+  padding: 14px; font-family: 'Bungee', cursive; font-size: 1.5rem; color: var(--amber);
+  word-break: break-all; text-align: center;
+}
+.symbol-buffer { min-height: 1.6em; font-size: 1.8rem; letter-spacing: 0.25em; color: var(--cream); }
+.tap-key {
+  width: clamp(150px, 46vw, 210px); height: clamp(150px, 46vw, 210px);
+  border-radius: 50%;
+  font-family: 'Bungee', cursive; font-size: 1.3rem; color: var(--ink);
+  background: radial-gradient(circle at 38% 32%, var(--amber-hot), var(--amber) 70%);
+  border: 8px solid #7a4d00;
+  box-shadow: 0 10px 0 #5c3a00, 0 14px 30px rgba(0,0,0,0.5);
+  cursor: pointer; touch-action: none;
+}
+.tap-key.pressed { transform: translateY(8px); box-shadow: 0 2px 0 #5c3a00; background: radial-gradient(circle at 38% 32%, #fff6dd, var(--amber-hot) 70%); }
+.tap-help { color: var(--muted); text-align: center; font-size: 0.95rem; line-height: 1.5; }
+
+/* ---------- Alfabetet ---------- */
+.alphabet { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; padding-bottom: 16px; }
+.alpha-card {
+  background: var(--ink-2); border: 2px solid var(--ink-3); border-radius: 14px;
+  padding: 10px 6px; text-align: center; cursor: pointer;
+  box-shadow: 0 4px 0 var(--key-shadow);
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+.alpha-card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-shadow); }
+.alpha-card .ch { font-family: 'Bungee', cursive; font-size: 1.3rem; color: var(--cream); }
+.alpha-card .code { color: var(--amber); font-size: 1.05rem; letter-spacing: 0.15em; margin-top: 2px; }
+.alpha-card.playing { border-color: var(--amber); box-shadow: 0 4px 0 var(--key-shadow), 0 0 18px rgba(255,182,39,0.5); }
+.section-title { font-family: 'Bungee', cursive; color: var(--muted); font-size: 0.9rem; padding: 12px 2px 8px; letter-spacing: 0.1em; }
+
+/* ---------- Nivå-upp-overlay ---------- */
+.overlay {
+  position: fixed; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(7,10,20,0.8); z-index: 50; padding: 20px;
+}
+.overlay.show { display: flex; }
+.level-card {
+  background: var(--ink-2); border: 3px solid var(--amber); border-radius: 24px;
+  padding: 30px 26px; text-align: center; max-width: 380px; width: 100%;
+  box-shadow: 0 0 60px rgba(255,182,39,0.35);
+  animation: pop-in 0.3s ease-out;
+}
+.level-card h2 { font-family: 'Bungee', cursive; color: var(--amber); font-size: 1.6rem; margin-bottom: 10px; }
+.level-card .new-chars { font-family: 'Bungee', cursive; font-size: 2rem; color: var(--cream); letter-spacing: 0.3em; margin: 14px 0 20px; }
+.confetti { position: fixed; top: -30px; font-size: 1.6rem; animation: fall linear forwards; z-index: 60; pointer-events: none; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.6; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header id="homeBtn">
+    <h1>MORSE&shy;MASKINEN</h1>
+    <div class="tagline">·− ·−·· ·−·· −−− &nbsp;=&nbsp; ALLO</div>
+  </header>
+
+  <!-- ===== HEM ===== -->
+  <section class="view active" id="view-home">
+    <div class="lamp-wrap"><div class="lamp" id="lampHome"></div></div>
+    <div class="menu">
+      <button class="btn" data-nav="practice"><span class="emoji">🎧</span><span>Träna lyssning<small>Hör ljudet – gissa bokstaven</small></span></button>
+      <button class="btn ghost" data-nav="tapper"><span class="emoji">🔘</span><span>Sändarnyckeln<small>Knacka morse själv – maskinen översätter</small></span></button>
+      <button class="btn ghost" data-nav="alphabet"><span class="emoji">📖</span><span>Morse-alfabetet<small>Tryck på en bokstav och lyssna</small></span></button>
+    </div>
+    <div class="speed-label">HASTIGHET</div>
+    <div class="speed-row">
+      <button class="pill" data-speed="slow">🐢 Lugn</button>
+      <button class="pill" data-speed="medium">🐇 Mellan</button>
+      <button class="pill" data-speed="fast">⚡ Blixt</button>
+    </div>
+  </section>
+
+  <!-- ===== TRÄNA ===== -->
+  <section class="view" id="view-practice">
+    <div class="topbar">
+      <button class="btn ghost" data-nav="home">← Hem</button>
+      <div class="stat">Nivå <b id="statLevel">1</b></div>
+      <div class="stat">🔥 <b id="statStreak">0</b></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="lamp-wrap"><div class="lamp" id="lampPractice"></div></div>
+    <div class="prompt" id="prompt">Tryck på ▶ för att börja!</div>
+    <div class="play-row">
+      <button class="btn" id="playBtn">▶ Spela</button>
+      <button class="btn ghost" id="replayBtn">🔁 Igen</button>
+    </div>
+    <div class="keypad" id="keypad"></div>
+  </section>
+
+  <!-- ===== SÄNDARNYCKELN ===== -->
+  <section class="view" id="view-tapper">
+    <div class="topbar">
+      <button class="btn ghost" data-nav="home">← Hem</button>
+      <button class="btn ghost" id="clearTapper">🗑 Rensa</button>
+    </div>
+    <div class="tapper-area">
+      <div class="decoded" id="decoded">&nbsp;</div>
+      <div class="symbol-buffer" id="symbolBuffer">&nbsp;</div>
+      <button class="tap-key" id="tapKey">TRYCK!</button>
+      <div class="tap-help">Kort tryck = <b>·</b> (kort) &nbsp; Långt tryck = <b>−</b> (lång)<br>
+      Vänta lite så blir det en bokstav. Vänta längre = mellanslag.</div>
+    </div>
+  </section>
+
+  <!-- ===== ALFABETET ===== -->
+  <section class="view" id="view-alphabet">
+    <div class="topbar">
+      <button class="btn ghost" data-nav="home">← Hem</button>
+      <div class="stat">Tryck &amp; lyssna 🔊</div>
+    </div>
+    <div class="section-title">BOKSTÄVER</div>
+    <div class="alphabet" id="alphaLetters"></div>
+    <div class="section-title">SIFFROR</div>
+    <div class="alphabet" id="alphaDigits"></div>
+  </section>
+
+</div>
+
+<!-- Nivå upp! -->
+<div class="overlay" id="levelOverlay">
+  <div class="level-card">
+    <h2 id="levelTitle">NIVÅ 2!</h2>
+    <div>Nya tecken att lära sig:</div>
+    <div class="new-chars" id="levelChars"></div>
+    <button class="btn" id="levelContinue">Kör! 🚀</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ================= MORSE-DATA ================= */
+const MORSE = {
+  A:'.-', B:'-...', C:'-.-.', D:'-..', E:'.', F:'..-.', G:'--.', H:'....',
+  I:'..', J:'.---', K:'-.-', L:'.-..', M:'--', N:'-.', O:'---', P:'.--.',
+  Q:'--.-', R:'.-.', S:'...', T:'-', U:'..-', V:'...-', W:'.--', X:'-..-',
+  Y:'-.--', Z:'--..', 'Å':'.--.-', 'Ä':'.-.-', 'Ö':'---.',
+  '0':'-----', '1':'.----', '2':'..---', '3':'...--', '4':'....-',
+  '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.'
+};
+const MORSE_REV = Object.fromEntries(Object.entries(MORSE).map(([k,v]) => [v,k]));
+const pretty = code => code.replace(/\./g,'·').replace(/-/g,'−');
+
+// Nivåer: nya tecken per nivå (lättast först)
+const LEVELS = [
+  ['E','T','A','M'],
+  ['I','N','S','O'],
+  ['R','U','D','K'],
+  ['W','G','H','V'],
+  ['L','F','P','B'],
+  ['J','X','C','Y'],
+  ['Z','Q','Å','Ä','Ö'],
+  ['1','2','3','4','5'],
+  ['6','7','8','9','0'],
+];
+const GOAL_PER_LEVEL = 10;
+
+/* ================= LJUD ================= */
+const SPEEDS = { slow: 150, medium: 100, fast: 65 }; // ms per enhet (dit)
+let ctx = null;
+let flashTimeouts = [];
+
+function ensureCtx() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+function tone(startTime, duration, freq = 640, vol = 0.5, type = 'sine') {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(vol, startTime + 0.008);
+  gain.gain.setValueAtTime(vol, startTime + duration - 0.012);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(startTime); osc.stop(startTime + duration + 0.02);
+}
+function cancelFlashes() { flashTimeouts.forEach(clearTimeout); flashTimeouts = []; }
+function flashLamp(lamp, delayMs, durMs) {
+  flashTimeouts.push(setTimeout(() => lamp.classList.add('on'), delayMs));
+  flashTimeouts.push(setTimeout(() => lamp.classList.remove('on'), delayMs + durMs));
+}
+// Spelar en morse-kod (t.ex. ".-") med ljud + lampblink. Returnerar total längd i ms.
+function playMorse(code, lamp) {
+  ensureCtx();
+  cancelFlashes();
+  const u = SPEEDS[state.speed];
+  let offset = 150; // liten paus innan start
+  const t0 = ctx.currentTime;
+  for (const sym of code) {
+    const dur = (sym === '.' ? 1 : 3) * u;
+    tone(t0 + offset / 1000, dur / 1000);
+    if (lamp) flashLamp(lamp, offset, dur);
+    offset += dur + u; // paus mellan symboler = 1 enhet
+  }
+  return offset;
+}
+function playSuccess() {
+  ensureCtx();
+  const t = ctx.currentTime;
+  tone(t + 0.02, 0.09, 660, 0.35, 'triangle');
+  tone(t + 0.13, 0.14, 990, 0.35, 'triangle');
+}
+function playError() {
+  ensureCtx();
+  tone(ctx.currentTime + 0.02, 0.25, 150, 0.3, 'sawtooth');
+}
+function playFanfare() {
+  ensureCtx();
+  const t = ctx.currentTime;
+  [523, 659, 784, 1047].forEach((f, i) => tone(t + 0.05 + i * 0.12, 0.15, f, 0.35, 'triangle'));
+}
+
+/* ================= SPARAT LÄGE ================= */
+const state = {
+  speed: 'slow',
+  level: 1,
+  correctInLevel: 0,
+  streak: 0,
+  ...JSON.parse(localStorage.getItem('morsemaskinen') || '{}')
+};
+function save() {
+  localStorage.setItem('morsemaskinen', JSON.stringify({
+    speed: state.speed, level: state.level,
+    correctInLevel: state.correctInLevel, streak: state.streak
+  }));
+}
+
+/* ================= NAVIGATION ================= */
+const views = { home: 'view-home', practice: 'view-practice', tapper: 'view-tapper', alphabet: 'view-alphabet' };
+let currentView = 'home';
+function show(name) {
+  currentView = name;
+  cancelFlashes();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(views[name]).classList.add('active');
+  if (name === 'practice') renderPractice();
+}
+document.querySelectorAll('[data-nav]').forEach(el =>
+  el.addEventListener('click', () => { ensureCtx(); show(el.dataset.nav); }));
+document.getElementById('homeBtn').addEventListener('click', () => show('home'));
+
+/* ================= HASTIGHET ================= */
+function renderSpeed() {
+  document.querySelectorAll('.pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.speed === state.speed));
+}
+document.querySelectorAll('.pill').forEach(p =>
+  p.addEventListener('click', () => {
+    state.speed = p.dataset.speed; save(); renderSpeed();
+    ensureCtx();
+    playMorse(MORSE['S'], document.getElementById('lampHome')); // smakprov
+  }));
+renderSpeed();
+
+/* ================= TRÄNINGSLÄGET ================= */
+const lampP = document.getElementById('lampPractice');
+const promptEl = document.getElementById('prompt');
+const keypadEl = document.getElementById('keypad');
+let currentChar = null;
+let awaitingAnswer = false;
+let lastChar = null;
+
+function unlockedChars() { return LEVELS.slice(0, state.level).flat(); }
+
+function renderPractice() {
+  document.getElementById('statLevel').textContent = state.level;
+  document.getElementById('statStreak').textContent = state.streak;
+  document.getElementById('progressFill').style.width =
+    Math.min(100, state.correctInLevel / GOAL_PER_LEVEL * 100) + '%';
+  const chars = unlockedChars();
+  keypadEl.innerHTML = '';
+  for (const ch of chars) {
+    const b = document.createElement('button');
+    b.className = 'key';
+    b.textContent = ch;
+    b.dataset.char = ch;
+    b.addEventListener('click', () => answer(ch));
+    keypadEl.appendChild(b);
+  }
+}
+
+function pickChar() {
+  const fresh = LEVELS[state.level - 1];
+  const old = LEVELS.slice(0, state.level - 1).flat();
+  // 65 % chans för nivåns nya tecken, annars repetition
+  let pool = (old.length === 0 || Math.random() < 0.65) ? fresh : old;
+  let ch;
+  do { ch = pool[Math.floor(Math.random() * pool.length)]; }
+  while (ch === lastChar && pool.length > 1);
+  return ch;
+}
+
+function newQuestion() {
+  currentChar = pickChar();
+  lastChar = currentChar;
+  awaitingAnswer = true;
+  promptEl.innerHTML = 'Vilken bokstav hör du? 👂';
+  document.querySelectorAll('.key').forEach(k => k.classList.remove('hint'));
+  playMorse(MORSE[currentChar], lampP);
+}
+
+function answer(ch) {
+  if (!awaitingAnswer || !currentChar) return;
+  if (ch === currentChar) {
+    awaitingAnswer = false;
+    playSuccess();
+    lampP.classList.add('good');
+    setTimeout(() => lampP.classList.remove('good'), 500);
+    state.streak++;
+    state.correctInLevel++;
+    const cheers = ['Snyggt! 🎉', 'Rätt! ⭐', 'Grymt! 💪', 'Wow! 🚀', 'Kanon! 🔥'];
+    promptEl.innerHTML = `<span class="reveal">${currentChar}</span> = <span class="morse-glyph">${pretty(MORSE[currentChar])}</span><br>${cheers[Math.floor(Math.random() * cheers.length)]}`;
+    document.querySelectorAll('.key').forEach(k => k.classList.remove('hint'));
+    if (state.correctInLevel >= GOAL_PER_LEVEL && state.level < LEVELS.length) {
+      state.level++;
+      state.correctInLevel = 0;
+      save(); renderPractice();
+      setTimeout(showLevelUp, 700);
+    } else {
+      save(); renderPractice();
+      setTimeout(newQuestion, 1100);
+    }
+  } else {
+    playError();
+    lampP.classList.add('bad');
+    setTimeout(() => lampP.classList.remove('bad'), 400);
+    state.streak = 0;
+    save(); renderPractice();
+    promptEl.innerHTML = `Nästan! Rätt svar: <span class="reveal">${currentChar}</span> = <span class="morse-glyph">${pretty(MORSE[currentChar])}</span><br>Tryck på den gröna knappen!`;
+    const key = document.querySelector(`.key[data-char="${currentChar}"]`);
+    if (key) key.classList.add('hint');
+    setTimeout(() => playMorse(MORSE[currentChar], lampP), 500);
+  }
+}
+
+document.getElementById('playBtn').addEventListener('click', () => { ensureCtx(); newQuestion(); });
+document.getElementById('replayBtn').addEventListener('click', () => {
+  if (currentChar && awaitingAnswer) playMorse(MORSE[currentChar], lampP);
+});
+
+// Fysiskt tangentbord funkar också
+document.addEventListener('keydown', e => {
+  if (currentView !== 'practice') return;
+  const ch = e.key.toUpperCase();
+  if (unlockedChars().includes(ch)) answer(ch);
+});
+
+/* ---- Nivå upp ---- */
+function showLevelUp() {
+  playFanfare();
+  document.getElementById('levelTitle').textContent = 'NIVÅ ' + state.level + '!';
+  document.getElementById('levelChars').textContent = LEVELS[state.level - 1].join(' ');
+  document.getElementById('levelOverlay').classList.add('show');
+  for (let i = 0; i < 18; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.textContent = ['🎉','⭐','✨','🎊'][i % 4];
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.animationDuration = (1.4 + Math.random() * 1.6) + 's';
+    c.style.animationDelay = (Math.random() * 0.4) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 3600);
+  }
+}
+document.getElementById('levelContinue').addEventListener('click', () => {
+  document.getElementById('levelOverlay').classList.remove('show');
+  newQuestion();
+});
+
+/* ================= SÄNDARNYCKELN ================= */
+const tapKey = document.getElementById('tapKey');
+const decodedEl = document.getElementById('decoded');
+const bufferEl = document.getElementById('symbolBuffer');
+let pressStart = 0;
+let symbolBuf = '';
+let decodedText = '';
+let gapTimer = null;
+let spaceTimer = null;
+let keyOsc = null, keyGain = null;
+
+const DIT_MAX = 220;       // ms – kortare tryck = dit
+const LETTER_GAP = 700;    // ms tystnad = avsluta bokstav
+const WORD_GAP = 1800;     // ms tystnad = mellanslag
+
+function keyDown(e) {
+  e.preventDefault();
+  ensureCtx();
+  clearTimeout(gapTimer); clearTimeout(spaceTimer);
+  pressStart = performance.now();
+  tapKey.classList.add('pressed');
+  // kontinuerlig ton medan man håller
+  keyOsc = ctx.createOscillator(); keyGain = ctx.createGain();
+  keyOsc.type = 'sine'; keyOsc.frequency.value = 640;
+  keyGain.gain.setValueAtTime(0, ctx.currentTime);
+  keyGain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.01);
+  keyOsc.connect(keyGain).connect(ctx.destination);
+  keyOsc.start();
+}
+function keyUp(e) {
+  e.preventDefault();
+  if (!pressStart) return;
+  tapKey.classList.remove('pressed');
+  if (keyOsc) {
+    keyGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.015);
+    keyOsc.stop(ctx.currentTime + 0.03);
+    keyOsc = null;
+  }
+  const dur = performance.now() - pressStart;
+  pressStart = 0;
+  symbolBuf += dur < DIT_MAX ? '.' : '-';
+  bufferEl.textContent = pretty(symbolBuf);
+  gapTimer = setTimeout(finishLetter, LETTER_GAP);
+}
+function finishLetter() {
+  if (!symbolBuf) return;
+  const ch = MORSE_REV[symbolBuf] || '?';
+  decodedText += ch;
+  symbolBuf = '';
+  bufferEl.innerHTML = '&nbsp;';
+  decodedEl.textContent = decodedText;
+  spaceTimer = setTimeout(() => {
+    if (decodedText && !decodedText.endsWith(' ')) {
+      decodedText += ' ';
+      decodedEl.textContent = decodedText;
+    }
+  }, WORD_GAP - LETTER_GAP);
+}
+tapKey.addEventListener('pointerdown', keyDown);
+tapKey.addEventListener('pointerup', keyUp);
+tapKey.addEventListener('pointercancel', keyUp);
+tapKey.addEventListener('pointerleave', e => { if (pressStart) keyUp(e); });
+document.getElementById('clearTapper').addEventListener('click', () => {
+  decodedText = ''; symbolBuf = '';
+  decodedEl.innerHTML = '&nbsp;'; bufferEl.innerHTML = '&nbsp;';
+  clearTimeout(gapTimer); clearTimeout(spaceTimer);
+});
+
+/* ================= ALFABETET ================= */
+function buildAlphabet() {
+  const letters = document.getElementById('alphaLetters');
+  const digits = document.getElementById('alphaDigits');
+  for (const [ch, code] of Object.entries(MORSE)) {
+    const card = document.createElement('button');
+    card.className = 'alpha-card';
+    card.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(code)}</div>`;
+    card.addEventListener('click', () => {
+      ensureCtx();
+      document.querySelectorAll('.alpha-card').forEach(c => c.classList.remove('playing'));
+      card.classList.add('playing');
+      const total = playMorse(code, null);
+      setTimeout(() => card.classList.remove('playing'), total);
+    });
+    (/[0-9]/.test(ch) ? digits : letters).appendChild(card);
+  }
+}
+buildAlphabet();
+
+/* Lampan på hemskärmen blinkar "HEJ" ibland, som liv i maskinen */
+const lampHome = document.getElementById('lampHome');
+function idleBlink() {
+  if (currentView !== 'home' || !ctx) return;
+  playMorse(MORSE['E'], lampHome);
+}
+setInterval(idleBlink, 6000);
+</script>
+</body>
+</html>
