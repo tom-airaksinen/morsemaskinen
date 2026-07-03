@@ -643,6 +643,15 @@ document.getElementById('cheatClose').addEventListener('click', () => cheatOverl
 cheatOverlay.addEventListener('click', e => { if (e.target === cheatOverlay) cheatOverlay.classList.remove('show'); });
 
 /* ================= ALFABETET ================= */
+const alphaCards = {};
+function playAlphaCard(ch) {
+  ensureCtx();
+  const card = alphaCards[ch];
+  document.querySelectorAll('.alpha-card').forEach(c => c.classList.remove('playing'));
+  card.classList.add('playing');
+  const total = playMorse(MORSE[ch], null);
+  setTimeout(() => card.classList.remove('playing'), total);
+}
 function buildAlphabet() {
   const letters = document.getElementById('alphaLetters');
   const digits = document.getElementById('alphaDigits');
@@ -650,17 +659,22 @@ function buildAlphabet() {
     const card = document.createElement('button');
     card.className = 'alpha-card';
     card.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(code)}</div>`;
-    card.addEventListener('click', () => {
-      ensureCtx();
-      document.querySelectorAll('.alpha-card').forEach(c => c.classList.remove('playing'));
-      card.classList.add('playing');
-      const total = playMorse(code, null);
-      setTimeout(() => card.classList.remove('playing'), total);
-    });
+    card.addEventListener('click', () => playAlphaCard(ch));
+    alphaCards[ch] = card;
     (/[0-9]/.test(ch) ? digits : letters).appendChild(card);
   }
 }
 buildAlphabet();
+
+// Med tangentbord: tryck på en bokstav/siffra så spelas den
+document.addEventListener('keydown', e => {
+  if (currentView !== 'alphabet') return;
+  const ch = e.key.toUpperCase();
+  if (alphaCards[ch]) {
+    playAlphaCard(ch);
+    alphaCards[ch].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+});
 
 /* Lampan på hemskärmen blinkar "HEJ" ibland, som liv i maskinen */
 const lampHome = document.getElementById('lampHome');
