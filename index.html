@@ -132,7 +132,13 @@ h1 {
 .stat b { color: var(--amber); }
 
 /* ---------- Träningsläget ---------- */
-.prompt { text-align: center; min-height: 3.2em; padding: 4px 0; font-size: 1.2rem; }
+.prompt {
+  text-align: center; font-size: 1.2rem;
+  /* Fast höjd så knapparna under aldrig flyttar sig när texten byts */
+  height: 4.9rem; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  line-height: 1.35;
+}
 .prompt .reveal { font-family: 'Bungee', cursive; font-size: 1.6rem; color: var(--amber); }
 .prompt .morse-glyph { letter-spacing: 0.2em; font-size: 1.4rem; }
 .progress-track { height: 14px; background: var(--ink-2); border-radius: 999px; border: 2px solid var(--ink-3); overflow: hidden; margin: 6px 2px 12px; }
