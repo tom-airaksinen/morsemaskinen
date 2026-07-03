@@ -241,6 +241,21 @@ h1 {
 }
 .cheat-item .ch { font-family: 'Bungee', cursive; font-size: 1.05rem; color: var(--cream); }
 .cheat-item .code { color: var(--amber); font-size: 0.95rem; letter-spacing: 0.12em; }
+/* ---------- Nivåväljaren ---------- */
+.stat-btn { font-family: 'Fredoka', sans-serif; font-weight: 600; cursor: pointer; }
+.stat-btn:active { transform: translateY(2px); }
+.level-list { overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 8px; }
+.level-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--ink); border: 2px solid var(--ink-3); border-radius: 14px;
+  padding: 12px 14px; cursor: pointer; text-align: left;
+  color: var(--cream); font-family: 'Fredoka', sans-serif; font-size: 1.05rem; font-weight: 600;
+  box-shadow: 0 3px 0 var(--key-shadow);
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+.level-row:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-shadow); }
+.level-row .chars { font-family: 'Bungee', cursive; color: var(--amber); letter-spacing: 0.18em; font-size: 1rem; }
+.level-row.current { border-color: var(--amber); box-shadow: 0 3px 0 var(--key-shadow), 0 0 14px rgba(255,182,39,0.4); }
 .confetti { position: fixed; top: -30px; font-size: 1.6rem; animation: fall linear forwards; z-index: 60; pointer-events: none; }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.6; } }
 </style>
@@ -273,7 +288,7 @@ h1 {
   <section class="view" id="view-practice">
     <div class="topbar">
       <button class="btn ghost" data-nav="home">← Hem</button>
-      <div class="stat">Nivå <b id="statLevel">1</b></div>
+      <button class="stat stat-btn" id="levelPickBtn">Nivå <b id="statLevel">1</b> ▾</button>
       <div class="stat">🔥 <b id="statStreak">0</b></div>
     </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -319,6 +334,17 @@ h1 {
     <div class="alphabet" id="alphaDigits"></div>
   </section>
 
+</div>
+
+<!-- Nivåväljare -->
+<div class="overlay" id="levelPickerOverlay">
+  <div class="cheat-card">
+    <div class="cheat-head">
+      <h2>VÄLJ NIVÅ 🪜</h2>
+      <button class="btn ghost" id="levelPickerClose">✕ Stäng</button>
+    </div>
+    <div class="level-list" id="levelList"></div>
+  </div>
 </div>
 
 <!-- Facit (fusklapp för sändarnyckeln) -->
@@ -605,6 +631,32 @@ document.getElementById('levelContinue').addEventListener('click', () => {
   document.getElementById('levelOverlay').classList.remove('show');
   newQuestion();
 });
+
+/* ---- Nivåväljaren: hoppa fritt mellan nivåer ---- */
+const levelPickerOverlay = document.getElementById('levelPickerOverlay');
+function openLevelPicker() {
+  const list = document.getElementById('levelList');
+  list.innerHTML = '';
+  LEVELS.forEach((chars, i) => {
+    const n = i + 1;
+    const row = document.createElement('button');
+    row.className = 'level-row' + (n === state.level ? ' current' : '');
+    row.innerHTML = `<span>Nivå ${n}${n === state.level ? ' ✓' : ''}</span><span class="chars">${chars.join(' ')}</span>`;
+    row.addEventListener('click', () => {
+      state.level = n;
+      state.correctInLevel = 0;
+      save();
+      levelPickerOverlay.classList.remove('show');
+      renderPractice();
+      newQuestion();
+    });
+    list.appendChild(row);
+  });
+  levelPickerOverlay.classList.add('show');
+}
+document.getElementById('levelPickBtn').addEventListener('click', openLevelPicker);
+document.getElementById('levelPickerClose').addEventListener('click', () => levelPickerOverlay.classList.remove('show'));
+levelPickerOverlay.addEventListener('click', e => { if (e.target === levelPickerOverlay) levelPickerOverlay.classList.remove('show'); });
 
 /* ================= SÄNDARNYCKELN ================= */
 const tapKey = document.getElementById('tapKey');
