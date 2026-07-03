@@ -153,12 +153,31 @@ h1 {
 
 /* ---------- Sändarnyckeln ---------- */
 .tapper-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.decoded-row { width: 100%; display: flex; gap: 10px; align-items: stretch; }
+.decoded-wrap { position: relative; flex: 1; min-width: 0; }
 .decoded {
-  width: 100%; min-height: 76px;
+  width: 100%; min-height: 76px; height: 100%;
   background: var(--ink-2); border: 2px solid var(--ink-3); border-radius: 16px;
-  padding: 14px; font-family: 'Bungee', cursive; font-size: 1.5rem; color: var(--amber);
+  padding: 14px 38px 14px 14px; font-family: 'Bungee', cursive; font-size: 1.5rem; color: var(--amber);
   word-break: break-all; text-align: center;
 }
+.clear-x {
+  position: absolute; top: 8px; right: 8px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ink-3); color: var(--muted); border: none;
+  font-size: 0.95rem; line-height: 1; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+}
+.clear-x.show { display: flex; }
+.clear-x:active { background: var(--bad); color: var(--cream); }
+.backspace-btn {
+  font-size: 1.6rem; color: var(--cream);
+  background: var(--ink-2); border: 2px solid var(--ink-3); border-radius: 16px;
+  padding: 0 18px; cursor: pointer;
+  box-shadow: 0 4px 0 var(--key-shadow);
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+.backspace-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-shadow); }
 .symbol-buffer { min-height: 1.6em; font-size: 1.8rem; letter-spacing: 0.25em; color: var(--cream); }
 .tap-key {
   width: clamp(150px, 46vw, 210px); height: clamp(150px, 46vw, 210px);
@@ -272,10 +291,15 @@ h1 {
     <div class="topbar">
       <button class="btn ghost" data-nav="home">← Hem</button>
       <button class="btn" id="cheatBtn">📖 Facit</button>
-      <button class="btn ghost" id="clearTapper">🗑 Rensa</button>
     </div>
     <div class="tapper-area">
-      <div class="decoded" id="decoded">&nbsp;</div>
+      <div class="decoded-row">
+        <div class="decoded-wrap">
+          <div class="decoded" id="decoded">&nbsp;</div>
+          <button class="clear-x" id="clearTapper" title="Rensa allt">✕</button>
+        </div>
+        <button class="backspace-btn" id="backspaceBtn" title="Ta bort ett tecken">⌫</button>
+      </div>
       <div class="symbol-buffer" id="symbolBuffer">&nbsp;</div>
       <button class="tap-key" id="tapKey">TRYCK!</button>
       <div class="tap-help">Kort tryck = <b>·</b> (kort) &nbsp; Långt tryck = <b>−</b> (lång)<br>
@@ -623,31 +647,50 @@ function keyUp(e) {
   const dur = performance.now() - pressStart;
   pressStart = 0;
   symbolBuf += dur < DIT_MAX ? '.' : '-';
-  bufferEl.textContent = pretty(symbolBuf);
+  updateDecodedUI();
   gapTimer = setTimeout(finishLetter, LETTER_GAP);
+}
+function updateDecodedUI() {
+  decodedEl.textContent = decodedText || ' ';
+  bufferEl.textContent = symbolBuf ? pretty(symbolBuf) : ' ';
+  document.getElementById('clearTapper').classList.toggle('show', decodedText.length > 0 || symbolBuf.length > 0);
 }
 function finishLetter() {
   if (!symbolBuf) return;
   const ch = MORSE_REV[symbolBuf] || '?';
   decodedText += ch;
   symbolBuf = '';
-  bufferEl.innerHTML = '&nbsp;';
-  decodedEl.textContent = decodedText;
+  updateDecodedUI();
   spaceTimer = setTimeout(() => {
     if (decodedText && !decodedText.endsWith(' ')) {
       decodedText += ' ';
-      decodedEl.textContent = decodedText;
+      updateDecodedUI();
     }
   }, WORD_GAP - LETTER_GAP);
+}
+// Backspace: pågående knackning först, annars senaste tecknet i texten
+function backspace() {
+  clearTimeout(gapTimer); clearTimeout(spaceTimer);
+  if (symbolBuf) {
+    symbolBuf = symbolBuf.slice(0, -1);
+    if (symbolBuf) gapTimer = setTimeout(finishLetter, LETTER_GAP);
+  } else {
+    decodedText = decodedText.slice(0, -1);
+  }
+  updateDecodedUI();
 }
 tapKey.addEventListener('pointerdown', keyDown);
 tapKey.addEventListener('pointerup', keyUp);
 tapKey.addEventListener('pointercancel', keyUp);
 tapKey.addEventListener('pointerleave', e => { if (pressStart) keyUp(e); });
+document.getElementById('backspaceBtn').addEventListener('click', backspace);
+document.addEventListener('keydown', e => {
+  if (currentView === 'tapper' && e.key === 'Backspace') { e.preventDefault(); backspace(); }
+});
 document.getElementById('clearTapper').addEventListener('click', () => {
   decodedText = ''; symbolBuf = '';
-  decodedEl.innerHTML = '&nbsp;'; bufferEl.innerHTML = '&nbsp;';
   clearTimeout(gapTimer); clearTimeout(spaceTimer);
+  updateDecodedUI();
 });
 
 /* ---- Facit (fusklapp) ---- */
