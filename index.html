@@ -452,12 +452,33 @@ function unlockSilentSwitch() {
   if (silentLoop.paused) silentLoop.play().catch(() => {});
 }
 
+let resumeFailures = 0;
 function ensureCtx() {
   unlockSilentSwitch();
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume();
+  if (!ctx || ctx.state === 'closed') ctx = new (window.AudioContext || window.webkitAudioContext)();
+  // iOS lämnar kontexten i 'interrupted' (inte bara 'suspended') efter
+  // Siri/notiser/appbyte – väck ur alla lägen som inte är 'running'
+  if (ctx.state !== 'running') {
+    ctx.resume().catch(() => {});
+    // Vägrar den vakna flera tryck i rad: bygg en ny ljudmotor
+    if (++resumeFailures >= 3) {
+      try { ctx.close(); } catch (e) {}
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      resumeFailures = 0;
+    }
+  } else {
+    resumeFailures = 0;
+  }
   return ctx;
 }
+// Väck ljudet automatiskt när appen kommer tillbaka i förgrunden
+function wakeAudio() {
+  if (silentLoop && silentLoop.paused) silentLoop.play().catch(() => {});
+  if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) wakeAudio(); });
+window.addEventListener('pageshow', wakeAudio);
+window.addEventListener('focus', wakeAudio);
 function tone(startTime, duration, freq = 640, vol = 0.5, type = 'sine') {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
