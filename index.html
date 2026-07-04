@@ -226,7 +226,9 @@ h1 {
   animation: pop-in 0.3s ease-out;
 }
 .level-card h2 { font-family: 'Bungee', cursive; color: var(--amber); font-size: 1.6rem; margin-bottom: 10px; }
-.level-card .new-chars { font-family: 'Bungee', cursive; font-size: 2rem; color: var(--cream); letter-spacing: 0.3em; margin: 14px 0 20px; }
+.level-card .new-chars { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 14px 0 20px; }
+.lu-char .ch { font-family: 'Bungee', cursive; font-size: 1.7rem; color: var(--cream); }
+.lu-char .lu-code { color: var(--amber); font-size: 1.05rem; letter-spacing: 0.12em; }
 /* ---------- Facit-fusklappen ---------- */
 .cheat-card {
   background: var(--ink-2); border: 3px solid var(--ink-3); border-radius: 24px;
@@ -248,6 +250,13 @@ h1 {
 }
 .cheat-item .ch { font-family: 'Bungee', cursive; font-size: 1.05rem; color: var(--cream); }
 .cheat-item .code { color: var(--amber); font-size: 0.95rem; letter-spacing: 0.12em; }
+/* ---------- Egen nivå ---------- */
+.custom-hint { color: var(--muted); padding-bottom: 10px; font-size: 0.95rem; }
+.cheat-item.togglable { cursor: pointer; opacity: 0.4; transition: opacity 0.12s, border-color 0.12s; }
+.cheat-item.togglable.sel { opacity: 1; border-color: var(--amber); box-shadow: 0 0 10px rgba(255,182,39,0.35); }
+.custom-start { margin-top: 14px; }
+.custom-start:disabled { opacity: 0.45; cursor: default; }
+
 /* ---------- Nivåväljaren ---------- */
 .stat-btn { font-family: 'Fredoka', sans-serif; font-weight: 600; cursor: pointer; }
 .stat-btn:active { transform: translateY(2px); }
@@ -352,6 +361,19 @@ h1 {
       <button class="btn ghost" id="levelPickerClose">✕ Stäng</button>
     </div>
     <div class="level-list" id="levelList"></div>
+  </div>
+</div>
+
+<!-- Egen nivå: välj tecken själv -->
+<div class="overlay" id="customOverlay">
+  <div class="cheat-card">
+    <div class="cheat-head">
+      <h2>EGEN NIVÅ ⭐</h2>
+      <button class="btn ghost" id="customClose">✕ Stäng</button>
+    </div>
+    <div class="custom-hint">Tryck på tecknen du vill öva på:</div>
+    <div class="cheat-grid" id="customGrid"></div>
+    <button class="btn custom-start" id="customStart">Kör! 🚀</button>
   </div>
 </div>
 
@@ -489,12 +511,15 @@ const state = {
   level: 1,
   correctInLevel: 0,
   streak: 0,
+  custom: false,
+  customChars: [],
   ...JSON.parse(localStorage.getItem('morsemaskinen') || '{}')
 };
 function save() {
   localStorage.setItem('morsemaskinen', JSON.stringify({
     speed: state.speed, level: state.level,
-    correctInLevel: state.correctInLevel, streak: state.streak
+    correctInLevel: state.correctInLevel, streak: state.streak,
+    custom: state.custom, customChars: state.customChars
   }));
 }
 
@@ -533,11 +558,16 @@ let currentChar = null;
 let awaitingAnswer = false;
 let lastChar = null;
 
-function unlockedChars() { return LEVELS.slice(0, state.level).flat(); }
+function unlockedChars() {
+  return state.custom ? state.customChars : LEVELS.slice(0, state.level).flat();
+}
 
 function renderPractice() {
-  document.getElementById('statLevel').textContent = state.level;
+  document.getElementById('levelPickBtn').innerHTML =
+    state.custom ? 'Egen ⭐ ▾' : `Nivå <b>${state.level}</b> ▾`;
   document.getElementById('statStreak').textContent = state.streak;
+  // Egen nivå har inget nivåmål – göm framstegsmätaren där
+  document.querySelector('.progress-track').style.visibility = state.custom ? 'hidden' : 'visible';
   document.getElementById('progressFill').style.width =
     Math.min(100, state.correctInLevel / GOAL_PER_LEVEL * 100) + '%';
   const chars = unlockedChars();
@@ -553,10 +583,15 @@ function renderPractice() {
 }
 
 function pickChar() {
-  const fresh = LEVELS[state.level - 1];
-  const old = LEVELS.slice(0, state.level - 1).flat();
-  // 65 % chans för nivåns nya tecken, annars repetition
-  let pool = (old.length === 0 || Math.random() < 0.65) ? fresh : old;
+  let pool;
+  if (state.custom) {
+    pool = state.customChars;
+  } else {
+    const fresh = LEVELS[state.level - 1];
+    const old = LEVELS.slice(0, state.level - 1).flat();
+    // 65 % chans för nivåns nya tecken, annars repetition
+    pool = (old.length === 0 || Math.random() < 0.65) ? fresh : old;
+  }
   let ch;
   do { ch = pool[Math.floor(Math.random() * pool.length)]; }
   while (ch === lastChar && pool.length > 1);
@@ -584,7 +619,7 @@ function answer(ch) {
     const cheers = ['Snyggt! 🎉', 'Rätt! ⭐', 'Grymt! 💪', 'Wow! 🚀', 'Kanon! 🔥'];
     promptEl.innerHTML = `<span class="reveal">${currentChar}</span> = <span class="morse-glyph">${pretty(MORSE[currentChar])}</span><br>${cheers[Math.floor(Math.random() * cheers.length)]}`;
     document.querySelectorAll('.key').forEach(k => k.classList.remove('hint'));
-    if (state.correctInLevel >= GOAL_PER_LEVEL && state.level < LEVELS.length) {
+    if (!state.custom && state.correctInLevel >= GOAL_PER_LEVEL && state.level < LEVELS.length) {
       state.level++;
       state.correctInLevel = 0;
       save(); renderPractice();
@@ -599,7 +634,7 @@ function answer(ch) {
     setTimeout(() => lampP.classList.remove('bad'), 400);
     state.streak = 0;
     save(); renderPractice();
-    promptEl.innerHTML = `Nästan! Rätt svar: <span class="reveal">${currentChar}</span> = <span class="morse-glyph">${pretty(MORSE[currentChar])}</span><br>Tryck på den gröna knappen!`;
+    promptEl.innerHTML = `Rätt svar: <span class="reveal">${currentChar}</span>&nbsp;= <span class="morse-glyph">${pretty(MORSE[currentChar])}</span>&nbsp;— tryck på den gröna! 👇`;
     const key = document.querySelector(`.key[data-char="${currentChar}"]`);
     if (key) key.classList.add('hint');
     setTimeout(() => playMorse(MORSE[currentChar], lampP), 500);
@@ -622,7 +657,8 @@ document.addEventListener('keydown', e => {
 function showLevelUp() {
   playFanfare();
   document.getElementById('levelTitle').textContent = 'NIVÅ ' + state.level + '!';
-  document.getElementById('levelChars').textContent = LEVELS[state.level - 1].join(' ');
+  document.getElementById('levelChars').innerHTML = LEVELS[state.level - 1].map(ch =>
+    `<div class="lu-char"><div class="ch">${ch}</div><div class="lu-code">${pretty(MORSE[ch])}</div></div>`).join('');
   document.getElementById('levelOverlay').classList.add('show');
   for (let i = 0; i < 18; i++) {
     const c = document.createElement('div');
@@ -647,10 +683,12 @@ function openLevelPicker() {
   list.innerHTML = '';
   LEVELS.forEach((chars, i) => {
     const n = i + 1;
+    const isCurrent = !state.custom && n === state.level;
     const row = document.createElement('button');
-    row.className = 'level-row' + (n === state.level ? ' current' : '');
-    row.innerHTML = `<span>Nivå ${n}${n === state.level ? ' ✓' : ''}</span><span class="chars">${chars.join(' ')}</span>`;
+    row.className = 'level-row' + (isCurrent ? ' current' : '');
+    row.innerHTML = `<span>Nivå ${n}${isCurrent ? ' ✓' : ''}</span><span class="chars">${chars.join(' ')}</span>`;
     row.addEventListener('click', () => {
+      state.custom = false;
       state.level = n;
       state.correctInLevel = 0;
       save();
@@ -660,8 +698,53 @@ function openLevelPicker() {
     });
     list.appendChild(row);
   });
+  const customRow = document.createElement('button');
+  customRow.className = 'level-row' + (state.custom ? ' current' : '');
+  customRow.innerHTML = `<span>Egen nivå ⭐${state.custom ? ' ✓' : ''}</span><span class="chars">välj tecken själv</span>`;
+  customRow.addEventListener('click', openCustomPicker);
+  list.appendChild(customRow);
   levelPickerOverlay.classList.add('show');
 }
+
+/* ---- Egen nivå: toggla tecken att öva på ---- */
+const customOverlay = document.getElementById('customOverlay');
+let customSel = new Set();
+function updateCustomStart() {
+  const btn = document.getElementById('customStart');
+  btn.disabled = customSel.size < 2;
+  btn.textContent = customSel.size < 2 ? 'Välj minst 2 tecken' : `Kör med ${customSel.size} tecken! 🚀`;
+}
+function openCustomPicker() {
+  levelPickerOverlay.classList.remove('show');
+  customSel = new Set(state.customChars);
+  const grid = document.getElementById('customGrid');
+  grid.innerHTML = '';
+  for (const ch of CHAR_ORDER) {
+    const b = document.createElement('button');
+    b.className = 'cheat-item togglable' + (customSel.has(ch) ? ' sel' : '');
+    b.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(MORSE[ch])}</div>`;
+    b.addEventListener('click', () => {
+      if (customSel.has(ch)) customSel.delete(ch); else customSel.add(ch);
+      b.classList.toggle('sel');
+      updateCustomStart();
+    });
+    grid.appendChild(b);
+  }
+  updateCustomStart();
+  customOverlay.classList.add('show');
+}
+document.getElementById('customStart').addEventListener('click', () => {
+  if (customSel.size < 2) return;
+  state.custom = true;
+  state.customChars = CHAR_ORDER.filter(ch => customSel.has(ch));
+  state.correctInLevel = 0;
+  save();
+  customOverlay.classList.remove('show');
+  renderPractice();
+  newQuestion();
+});
+document.getElementById('customClose').addEventListener('click', () => customOverlay.classList.remove('show'));
+customOverlay.addEventListener('click', e => { if (e.target === customOverlay) customOverlay.classList.remove('show'); });
 document.getElementById('levelPickBtn').addEventListener('click', openLevelPicker);
 document.getElementById('levelPickerClose').addEventListener('click', () => levelPickerOverlay.classList.remove('show'));
 levelPickerOverlay.addEventListener('click', e => { if (e.target === levelPickerOverlay) levelPickerOverlay.classList.remove('show'); });
