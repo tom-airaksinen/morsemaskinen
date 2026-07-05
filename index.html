@@ -199,6 +199,8 @@ h1 {
   border: 8px solid #7a4d00;
   box-shadow: 0 10px 0 #5c3a00, 0 14px 30px rgba(0,0,0,0.5);
   cursor: pointer; touch-action: none;
+  /* iOS: inget förstoringsglas / textmarkering vid långtryck */
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
 }
 .tap-key.pressed { transform: translateY(8px); box-shadow: 0 2px 0 #5c3a00; background: radial-gradient(circle at 38% 32%, #fff6dd, var(--amber-hot) 70%); }
 .tap-help { color: var(--muted); text-align: center; font-size: 0.95rem; line-height: 1.5; }
@@ -909,6 +911,8 @@ function playbackMessage() {
 }
 document.getElementById('playbackBtn').addEventListener('click', playbackMessage);
 
+// Stoppa iOS långtrycks-callout/kontextmeny på nyckeln
+tapKey.addEventListener('contextmenu', e => e.preventDefault());
 tapKey.addEventListener('pointerdown', keyDown);
 tapKey.addEventListener('pointerup', keyUp);
 tapKey.addEventListener('pointercancel', keyUp);
