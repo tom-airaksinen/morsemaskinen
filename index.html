@@ -335,7 +335,7 @@ h1 {
       <div class="symbol-buffer" id="symbolBuffer">&nbsp;</div>
       <button class="tap-key" id="tapKey">TRYCK!</button>
       <div class="tap-help">Kort tryck = <b>·</b> (kort) &nbsp; Långt tryck = <b>−</b> (lång)<br>
-      Vänta lite så blir det en bokstav. Vänta längre = mellanslag.</div>
+      Vänta lite så blir det en bokstav.</div>
     </div>
   </section>
 
@@ -778,17 +778,15 @@ let pressStart = 0;
 let symbolBuf = '';
 let decodedText = '';
 let gapTimer = null;
-let spaceTimer = null;
 let keyOsc = null, keyGain = null;
 
 const DIT_MAX = 220;       // ms – kortare tryck = dit
 const LETTER_GAP = 700;    // ms tystnad = avsluta bokstav
-const WORD_GAP = 1800;     // ms tystnad = mellanslag
 
 function keyDown(e) {
   e.preventDefault();
   ensureCtx();
-  clearTimeout(gapTimer); clearTimeout(spaceTimer);
+  clearTimeout(gapTimer);
   pressStart = performance.now();
   tapKey.classList.add('pressed');
   // kontinuerlig ton medan man håller
@@ -826,16 +824,10 @@ function finishLetter() {
   decodedText += ch;
   symbolBuf = '';
   updateDecodedUI();
-  spaceTimer = setTimeout(() => {
-    if (decodedText && !decodedText.endsWith(' ')) {
-      decodedText += ' ';
-      updateDecodedUI();
-    }
-  }, WORD_GAP - LETTER_GAP);
 }
 // Backspace: pågående knackning först, annars senaste tecknet i texten
 function backspace() {
-  clearTimeout(gapTimer); clearTimeout(spaceTimer);
+  clearTimeout(gapTimer);
   if (symbolBuf) {
     symbolBuf = symbolBuf.slice(0, -1);
     if (symbolBuf) gapTimer = setTimeout(finishLetter, LETTER_GAP);
@@ -889,7 +881,7 @@ document.addEventListener('keydown', e => {
 });
 document.getElementById('clearTapper').addEventListener('click', () => {
   decodedText = ''; symbolBuf = '';
-  clearTimeout(gapTimer); clearTimeout(spaceTimer);
+  clearTimeout(gapTimer);
   updateDecodedUI();
 });
 
