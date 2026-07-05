@@ -205,6 +205,28 @@ h1 {
 .tap-key.pressed { transform: translateY(8px); box-shadow: 0 2px 0 #5c3a00; background: radial-gradient(circle at 38% 32%, #fff6dd, var(--amber-hot) 70%); }
 .tap-help { color: var(--muted); text-align: center; font-size: 0.95rem; line-height: 1.5; }
 
+/* ---------- Ordläget ---------- */
+.word-panel { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.word-panel.show { display: flex; }
+.tapper-area.word-mode .decoded-row,
+.tapper-area.word-mode .tap-help { display: none; }
+.word-tiles { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 60px; align-items: center; }
+.word-tile {
+  min-width: 44px; padding: 8px 6px; border-radius: 12px;
+  background: var(--ink-2); border: 2px solid var(--ink-3);
+  font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; font-size: 1.7rem;
+  color: var(--muted); text-align: center; transition: all 0.15s;
+}
+.word-tile.done { background: var(--good); color: var(--ink); border-color: var(--good); }
+.word-tile.current { border-color: var(--amber); color: var(--cream); box-shadow: 0 0 14px rgba(255,182,39,0.5); }
+.word-tile.wrong { background: var(--bad); color: var(--cream); border-color: var(--bad); animation: shake 0.3s; }
+.word-tile.space { min-width: 20px; background: none; border: none; box-shadow: none; }
+@keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.word-hint { min-height: 1.6em; color: var(--amber); font-size: 1.2rem; letter-spacing: 0.15em; text-align: center; }
+.word-hint .cheer { font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; letter-spacing: normal; }
+.word-controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.word-controls .btn { padding: 10px 14px; font-size: 0.95rem; }
+
 /* ---------- Alfabetet ---------- */
 .alphabet { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; padding-bottom: 16px; }
 .alpha-card {
@@ -330,9 +352,20 @@ h1 {
     <div class="topbar">
       <button class="btn ghost" data-nav="home">← Hem</button>
       <button class="btn ghost" id="playbackBtn">🔊 Lyssna</button>
+      <button class="btn ghost" id="wordBtn">🎯 Skriv ordet</button>
       <button class="btn" id="cheatBtn">📖 Facit</button>
     </div>
     <div class="tapper-area">
+      <!-- Ordläge: skriv ett ord i morse -->
+      <div class="word-panel" id="wordPanel">
+        <div class="word-tiles" id="wordTiles"></div>
+        <div class="word-hint" id="wordHint">&nbsp;</div>
+        <div class="word-controls">
+          <button class="btn ghost" id="wordNew">🔁 Nytt ord</button>
+          <button class="btn ghost" id="wordTip">💡 Tips</button>
+          <button class="btn ghost" id="wordExit">✕ Sluta</button>
+        </div>
+      </div>
       <div class="decoded-row">
         <div class="decoded-wrap">
           <div class="decoded" id="decoded">&nbsp;</div>
@@ -369,6 +402,19 @@ h1 {
       <button class="btn ghost" id="levelPickerClose">✕ Stäng</button>
     </div>
     <div class="level-list" id="levelList"></div>
+  </div>
+</div>
+
+<!-- Ordläge: uteslut tecken + slumpa ord -->
+<div class="overlay" id="wordOverlay">
+  <div class="cheat-card">
+    <div class="cheat-head">
+      <h2>SKRIV ORDET 🎯</h2>
+      <button class="btn ghost" id="wordSetupClose">✕ Stäng</button>
+    </div>
+    <div class="custom-hint">Appen slumpar ett ord som du knackar i morse. Vill du undvika några tecken? Tryck bort dem:</div>
+    <div class="cheat-grid" id="wordExcludeGrid"></div>
+    <button class="btn custom-start" id="wordStart">Slumpa ord! 🎯</button>
   </div>
 </div>
 
@@ -547,6 +593,7 @@ const state = {
   custom: false,
   customChars: [],
   showCode: false,
+  wordExclude: [],
   ...JSON.parse(localStorage.getItem('morsemaskinen') || '{}')
 };
 function save() {
@@ -554,7 +601,7 @@ function save() {
     speed: state.speed, level: state.level,
     correctInLevel: state.correctInLevel, streak: state.streak,
     custom: state.custom, customChars: state.customChars,
-    showCode: state.showCode
+    showCode: state.showCode, wordExclude: state.wordExclude
   }));
 }
 
@@ -564,6 +611,7 @@ let currentView = 'home';
 function show(name) {
   currentView = name;
   cancelFlashes();
+  if (name !== 'tapper' && typeof exitWordMode === 'function') exitWordMode();
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(views[name]).classList.add('active');
   if (name === 'practice') renderPractice();
@@ -853,7 +901,7 @@ function keyUp(e) {
   gapTimer = setTimeout(finishLetter, LETTER_GAP);
 }
 function updateDecodedUI() {
-  decodedEl.textContent = decodedText || ' ';
+  if (!wordMode) decodedEl.textContent = decodedText || ' ';
   bufferEl.textContent = symbolBuf ? pretty(symbolBuf) : ' ';
   // Krysset visas först när det finns text i fältet att rensa
   document.getElementById('clearTapper').classList.toggle('show', decodedText.length > 0);
@@ -861,8 +909,9 @@ function updateDecodedUI() {
 function finishLetter() {
   if (!symbolBuf) return;
   const ch = MORSE_REV[symbolBuf] || '?';
-  decodedText += ch;
   symbolBuf = '';
+  if (wordMode) { checkWordLetter(ch); }
+  else { decodedText += ch; }
   updateDecodedUI();
 }
 // Backspace: pågående knackning först, annars senaste tecknet i texten
@@ -871,9 +920,11 @@ function backspace() {
   if (symbolBuf) {
     symbolBuf = symbolBuf.slice(0, -1);
     if (symbolBuf) gapTimer = setTimeout(finishLetter, LETTER_GAP);
-  } else {
-    decodedText = decodedText.slice(0, -1);
+    updateDecodedUI();
+    return;
   }
+  if (wordMode) { wordStepBack(); return; }
+  decodedText = decodedText.slice(0, -1);
   updateDecodedUI();
 }
 // Spela upp det inknackade meddelandet som morse, med bokstaven upplyst medan den låter
@@ -925,6 +976,150 @@ document.getElementById('clearTapper').addEventListener('click', () => {
   decodedText = ''; symbolBuf = '';
   clearTimeout(gapTimer);
   updateDecodedUI();
+});
+
+/* ================= ORDLÄGET (skriv ordet) ================= */
+const WORD_BANK = [
+  'SOL','KATT','HUND','BIL','HUS','BOK','FISK','MÅNE','IS','ÄGG','ÖGA','TÅG','RÄV','LEJON',
+  'MORSE','SKOLA','GLASS','BLOMMA','VINTER','SOMMAR','KANIN','TIGER','APA','SNÖ','REGN',
+  'HEJ DÅ','GOD NATT','JAG KAN','VI SES','HEJ HEJ','GOD MORGON'
+];
+const tapperArea = document.querySelector('.tapper-area');
+const wordPanel = document.getElementById('wordPanel');
+const wordTilesEl = document.getElementById('wordTiles');
+const wordHintEl = document.getElementById('wordHint');
+let wordMode = false;
+let targetWord = '';
+let wordIndex = 0;
+let wordTiles = [];
+let lastWord = null;
+
+function allowedWords() {
+  const ex = new Set(state.wordExclude);
+  const ok = WORD_BANK.filter(w => ![...w].some(c => c !== ' ' && ex.has(c)));
+  return ok.length ? ok : WORD_BANK; // aldrig tomt
+}
+function pickWord() {
+  const pool = allowedWords();
+  let w;
+  do { w = pool[Math.floor(Math.random() * pool.length)]; }
+  while (w === lastWord && pool.length > 1);
+  return w;
+}
+function buildWordTiles() {
+  wordTilesEl.innerHTML = '';
+  wordTiles = [...targetWord].map(ch => {
+    const t = document.createElement('div');
+    if (ch === ' ') { t.className = 'word-tile space'; t.innerHTML = '&nbsp;'; }
+    else { t.className = 'word-tile'; t.textContent = ch; }
+    wordTilesEl.appendChild(t);
+    return t;
+  });
+}
+function highlightCurrent() {
+  wordTiles.forEach(t => t.classList.remove('current'));
+  if (wordTiles[wordIndex]) wordTiles[wordIndex].classList.add('current');
+}
+function newWord() {
+  clearTimeout(gapTimer);
+  cancelFlashes();
+  symbolBuf = ''; decodedText = '';
+  targetWord = pickWord();
+  lastWord = targetWord;
+  wordIndex = 0;
+  buildWordTiles();
+  highlightCurrent();
+  wordHintEl.innerHTML = '&nbsp;';
+  updateDecodedUI();
+}
+function checkWordLetter(ch) {
+  const expected = targetWord[wordIndex];
+  if (ch === expected) {
+    wordTiles[wordIndex].classList.remove('current');
+    wordTiles[wordIndex].classList.add('done');
+    playSuccess();
+    wordIndex++;
+    while (targetWord[wordIndex] === ' ') wordIndex++;
+    if (wordIndex >= targetWord.length) { wordComplete(); }
+    else { highlightCurrent(); wordHintEl.innerHTML = '&nbsp;'; }
+  } else {
+    playError();
+    const t = wordTiles[wordIndex];
+    t.classList.add('wrong');
+    setTimeout(() => t && t.classList.remove('wrong'), 400);
+    wordHintEl.innerHTML = `Det blev <b>${pretty(MORSE[ch] || '?')}</b> — försök igen!`;
+  }
+}
+function wordComplete() {
+  playFanfare();
+  const cheers = ['Snyggt! 🎉','Perfekt! ⭐','Grymt! 💪','Kanon! 🚀'];
+  wordHintEl.innerHTML = `<span class="cheer">${cheers[Math.floor(Math.random() * cheers.length)]}</span>`;
+  setTimeout(newWord, 1600);
+}
+function wordStepBack() {
+  // backa till föregående ifyllda bokstav
+  let i = wordIndex - 1;
+  while (i >= 0 && targetWord[i] === ' ') i--;
+  if (i < 0) return;
+  wordTiles[i].classList.remove('done');
+  wordIndex = i;
+  highlightCurrent();
+  wordHintEl.innerHTML = '&nbsp;';
+}
+function enterWordMode() {
+  wordMode = true;
+  tapperArea.classList.add('word-mode');
+  wordPanel.classList.add('show');
+  newWord();
+}
+function exitWordMode() {
+  if (!wordMode) return;
+  wordMode = false;
+  clearTimeout(gapTimer);
+  cancelFlashes();
+  tapperArea.classList.remove('word-mode');
+  wordPanel.classList.remove('show');
+  symbolBuf = ''; decodedText = '';
+  updateDecodedUI();
+}
+
+// Inställnings-overlay: uteslut tecken, slumpa ord
+const wordOverlay = document.getElementById('wordOverlay');
+let wordExcludeSel = new Set();
+function openWordSetup() {
+  wordExcludeSel = new Set(state.wordExclude);
+  const grid = document.getElementById('wordExcludeGrid');
+  grid.innerHTML = '';
+  for (const ch of CHAR_ORDER) {
+    if (/[0-9]/.test(ch)) continue; // orden har bara bokstäver
+    const b = document.createElement('button');
+    // "sel" = utesluten (nedtonad); ej vald = med i spelet
+    b.className = 'cheat-item togglable' + (wordExcludeSel.has(ch) ? '' : ' sel');
+    b.innerHTML = `<div class="ch">${ch}</div><div class="code">${pretty(MORSE[ch])}</div>`;
+    b.addEventListener('click', () => {
+      if (wordExcludeSel.has(ch)) wordExcludeSel.delete(ch); else wordExcludeSel.add(ch);
+      b.classList.toggle('sel');
+    });
+    grid.appendChild(b);
+  }
+  wordOverlay.classList.add('show');
+}
+document.getElementById('wordBtn').addEventListener('click', () => { ensureCtx(); openWordSetup(); });
+document.getElementById('wordSetupClose').addEventListener('click', () => wordOverlay.classList.remove('show'));
+wordOverlay.addEventListener('click', e => { if (e.target === wordOverlay) wordOverlay.classList.remove('show'); });
+document.getElementById('wordStart').addEventListener('click', () => {
+  state.wordExclude = CHAR_ORDER.filter(ch => wordExcludeSel.has(ch));
+  save();
+  wordOverlay.classList.remove('show');
+  enterWordMode();
+});
+document.getElementById('wordNew').addEventListener('click', newWord);
+document.getElementById('wordExit').addEventListener('click', exitWordMode);
+document.getElementById('wordTip').addEventListener('click', () => {
+  const expected = targetWord[wordIndex];
+  if (!expected) return;
+  wordHintEl.innerHTML = `<b>${expected}</b> = <b>${pretty(MORSE[expected])}</b>`;
+  playMorse(MORSE[expected], null);
 });
 
 /* ---- Facit (fusklapp) ---- */
