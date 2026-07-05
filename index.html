@@ -156,6 +156,11 @@ h1 {
 .key.hint { background: var(--good); color: var(--ink); border-color: var(--good); animation: pulse 0.8s infinite; }
 @keyframes pulse { 50% { box-shadow: 0 4px 0 var(--key-shadow), 0 0 22px rgba(111,224,138,0.8); } }
 .play-row { display: flex; gap: 10px; justify-content: center; padding-bottom: 14px; }
+.code-toggle { color: var(--muted); }
+.code-toggle.active { background: var(--amber); color: var(--ink); border-color: var(--amber); box-shadow: 0 5px 0 #a86e00; }
+.code-peek { display: flex; gap: 7px; font-size: 1.7rem; line-height: 1; margin-top: 4px; }
+.code-peek span { opacity: 0.25; transition: opacity 0.1s; }
+.code-peek span.lit { opacity: 1; color: var(--amber); text-shadow: 0 0 10px rgba(255,182,39,0.55); }
 
 /* ---------- Sändarnyckeln ---------- */
 .tapper-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
@@ -313,6 +318,7 @@ h1 {
     <div class="play-row">
       <button class="btn" id="playBtn">▶ Spela</button>
       <button class="btn ghost" id="replayBtn">🔁 Igen</button>
+      <button class="btn ghost code-toggle" id="codeToggle" title="Visa prickar och streck">👁 ·−</button>
     </div>
     <div class="keypad" id="keypad"></div>
   </section>
@@ -496,17 +502,21 @@ function flashLamp(lamp, delayMs, durMs) {
   flashTimeouts.push(setTimeout(() => lamp.classList.remove('on'), delayMs + durMs));
 }
 // Spelar en morse-kod (t.ex. ".-") med ljud + lampblink. Returnerar total längd i ms.
-function playMorse(code, lamp) {
+// onSym(i) anropas när symbol nummer i börjar låta.
+function playMorse(code, lamp, onSym) {
   ensureCtx();
   cancelFlashes();
   const u = SPEEDS[state.speed];
   let offset = 150; // liten paus innan start
   const t0 = ctx.currentTime;
+  let i = 0;
   for (const sym of code) {
     const dur = (sym === '.' ? 1 : 3) * u;
     tone(t0 + offset / 1000, dur / 1000);
     if (lamp) flashLamp(lamp, offset, dur);
+    if (onSym) { const idx = i; flashTimeouts.push(setTimeout(() => onSym(idx), offset)); }
     offset += dur + u; // paus mellan symboler = 1 enhet
+    i++;
   }
   return offset;
 }
@@ -534,13 +544,15 @@ const state = {
   streak: 0,
   custom: false,
   customChars: [],
+  showCode: false,
   ...JSON.parse(localStorage.getItem('morsemaskinen') || '{}')
 };
 function save() {
   localStorage.setItem('morsemaskinen', JSON.stringify({
     speed: state.speed, level: state.level,
     correctInLevel: state.correctInLevel, streak: state.streak,
-    custom: state.custom, customChars: state.customChars
+    custom: state.custom, customChars: state.customChars,
+    showCode: state.showCode
   }));
 }
 
@@ -619,13 +631,26 @@ function pickChar() {
   return ch;
 }
 
+function renderQuestionPrompt(allLit) {
+  const glyph = state.showCode
+    ? `<div class="code-peek" id="codePeek">${[...MORSE[currentChar]].map(s =>
+        `<span${allLit ? ' class="lit"' : ''}>${s === '.' ? '·' : '−'}</span>`).join('')}</div>`
+    : '';
+  promptEl.innerHTML = `<span>Vilken bokstav hör du? 👂</span>${glyph}`;
+}
+function playQuestion() {
+  renderQuestionPrompt(false);
+  playMorse(MORSE[currentChar], lampP, state.showCode ? i => {
+    const spans = document.querySelectorAll('#codePeek span');
+    if (spans[i]) spans[i].classList.add('lit');
+  } : null);
+}
 function newQuestion() {
   currentChar = pickChar();
   lastChar = currentChar;
   awaitingAnswer = true;
-  promptEl.innerHTML = 'Vilken bokstav hör du? 👂';
   document.querySelectorAll('.key').forEach(k => k.classList.remove('hint'));
-  playMorse(MORSE[currentChar], lampP);
+  playQuestion();
 }
 
 function answer(ch) {
@@ -664,8 +689,21 @@ function answer(ch) {
 
 document.getElementById('playBtn').addEventListener('click', () => { ensureCtx(); newQuestion(); });
 document.getElementById('replayBtn').addEventListener('click', () => {
-  if (currentChar && awaitingAnswer) playMorse(MORSE[currentChar], lampP);
+  if (currentChar && awaitingAnswer) playQuestion();
 });
+
+/* ---- Visa prickar & streck-toggeln ---- */
+function renderCodeToggle() {
+  document.getElementById('codeToggle').classList.toggle('active', state.showCode);
+}
+document.getElementById('codeToggle').addEventListener('click', () => {
+  state.showCode = !state.showCode;
+  save();
+  renderCodeToggle();
+  // Mitt i en fråga: visa/dölj mönstret direkt (färdigtänt – det har ju redan låtit)
+  if (currentChar && awaitingAnswer) renderQuestionPrompt(true);
+});
+renderCodeToggle();
 
 // Fysiskt tangentbord funkar också
 document.addEventListener('keydown', e => {
