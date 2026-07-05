@@ -1282,7 +1282,12 @@ function composerBeep(sym) {
 }
 document.getElementById('padDot').addEventListener('click', () => { composerBeep('·'); composerAdd('·'); });
 document.getElementById('padDash').addEventListener('click', () => { composerBeep('−'); composerAdd('−'); });
-document.getElementById('padSpace').addEventListener('click', () => composerAdd(' '));
+// Mellanslag: aldrig dubbelt eller inledande – två tryck i rad ger ett mellanslag
+function composerSpace() {
+  if (!composerText || composerText.endsWith(' ')) return;
+  composerAdd(' ');
+}
+document.getElementById('padSpace').addEventListener('click', composerSpace);
 document.getElementById('composerBack').addEventListener('click', () => { composerText = composerText.slice(0, -1); renderComposer(); });
 document.getElementById('composerClear').addEventListener('click', () => { composerText = ''; renderComposer(); });
 composerPlainToggle.addEventListener('change', () => {
@@ -1337,7 +1342,7 @@ document.addEventListener('keydown', e => {
   if (currentView !== 'composer') return;
   if (e.key === '.') { composerBeep('·'); composerAdd('·'); }
   else if (e.key === '-') { composerBeep('−'); composerAdd('−'); }
-  else if (e.key === ' ') { e.preventDefault(); composerAdd(' '); }
+  else if (e.key === ' ') { e.preventDefault(); composerSpace(); }
   else if (e.key === 'Backspace') { e.preventDefault(); composerText = composerText.slice(0, -1); renderComposer(); }
 });
 
