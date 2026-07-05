@@ -962,8 +962,12 @@ function playbackMessage() {
 }
 document.getElementById('playbackBtn').addEventListener('click', playbackMessage);
 
-// Stoppa iOS långtrycks-callout/kontextmeny på nyckeln
+// Stoppa iOS callout/markerings-lupp på nyckeln. Dubbeltryck-och-håll
+// väcker markerings-luppen; att blockera touch-gesten dödar den utan att
+// störa pointer-händelserna som driver ljudet.
 tapKey.addEventListener('contextmenu', e => e.preventDefault());
+tapKey.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+tapKey.addEventListener('touchend', e => e.preventDefault(), { passive: false });
 tapKey.addEventListener('pointerdown', keyDown);
 tapKey.addEventListener('pointerup', keyUp);
 tapKey.addEventListener('pointercancel', keyUp);
@@ -980,9 +984,21 @@ document.getElementById('clearTapper').addEventListener('click', () => {
 
 /* ================= ORDLÄGET (skriv ordet) ================= */
 const WORD_BANK = [
-  'SOL','KATT','HUND','BIL','HUS','BOK','FISK','MÅNE','IS','ÄGG','ÖGA','TÅG','RÄV','LEJON',
-  'MORSE','SKOLA','GLASS','BLOMMA','VINTER','SOMMAR','KANIN','TIGER','APA','SNÖ','REGN',
-  'HEJ DÅ','GOD NATT','JAG KAN','VI SES','HEJ HEJ','GOD MORGON'
+  // Korta ord
+  'SOL','KATT','HUND','BIL','HUS','BOK','FISK','MÅNE','IS','ÄGG','ÖGA','TÅG','RÄV','APA','SNÖ','REGN',
+  'STOL','BORD','LAMPA','PENNA','DÖRR','NYCKEL','SKATT','HAV','BERG','SKOG','ÅSKA','STORM',
+  // Djur
+  'LEJON','TIGER','KANIN','ZEBRA','GIRAFF','ELEFANT','KROKODIL','DELFIN','VALP','KYCKLING',
+  'IGELKOTT','EKORRE','BJÖRN','VARG','ÖRN','UGGLA','MYRA','FJÄRIL','ORMEN','GRODA',
+  // Mat
+  'PIZZA','KORV','BULLE','KAKA','GODIS','CHOKLAD','PANNKAKA','KÖTTBULLE','MACKA','JORDGUBBE','KLADDKAKA','GLASS',
+  // Rymd & natur
+  'STJÄRNA','PLANET','KOMET','GALAX','VULKAN','REGNBÅGE','RAKET','MÅNRAKET',
+  // Coola & roliga
+  'MORSE','SKOLA','BLOMMA','VINTER','SOMMAR','DATOR','FÖNSTER','DRAKE','ROBOT','PIRAT','NINJA',
+  'MONSTER','RYMDHUND','TURBOSNIGEL','SPÖKPLUMP','DRAKFLYGARE','SOLSTRÅLESKRAFT','PLINGELING','KRAXMASKIN',
+  // Fraser
+  'HEJ DÅ','GOD NATT','JAG KAN','VI SES','HEJ HEJ','GOD MORGON','BRA JOBBAT','VI HÖRS','LYCKA TILL','JAG GILLAR MORSE'
 ];
 const tapperArea = document.querySelector('.tapper-area');
 const wordPanel = document.getElementById('wordPanel');
