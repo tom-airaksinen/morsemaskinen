@@ -242,6 +242,47 @@ h1 {
 .alpha-card.playing { border-color: var(--amber); box-shadow: 0 4px 0 var(--key-shadow), 0 0 18px rgba(255,182,39,0.5); }
 .section-title { font-family: 'Bungee', cursive; color: var(--muted); font-size: 0.9rem; padding: 12px 2px 8px; letter-spacing: 0.1em; }
 
+/* ---------- Punkt & streck (morseskrivare) ---------- */
+#view-composer { gap: 12px; }
+.composer-out {
+  width: 100%; min-height: 90px;
+  background: var(--ink-2); border: 2px solid var(--ink-3); border-radius: 16px;
+  padding: 16px; font-size: 2rem; line-height: 1.4; color: var(--amber);
+  letter-spacing: 0.14em; word-break: break-all; text-align: center;
+  display: flex; align-items: center; justify-content: center;
+}
+.composer-plain {
+  width: 100%; background: var(--ink); border: 2px dashed var(--ink-3); border-radius: 14px;
+  padding: 12px; text-align: center; color: var(--cream);
+  font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; font-size: 1.4rem;
+  word-break: break-word; min-height: 2.6em;
+}
+.composer-plain .q { color: var(--muted); }
+.composer-toggle-row { display: flex; align-items: center; gap: 8px; justify-content: center; color: var(--muted); font-size: 1rem; cursor: pointer; }
+.composer-toggle-row input { width: 20px; height: 20px; accent-color: var(--amber); }
+.composer-pads { display: flex; gap: 12px; }
+.composer-pad {
+  font-family: 'Bungee', cursive; color: var(--ink);
+  background: linear-gradient(180deg, var(--amber-hot), var(--amber));
+  border: none; border-radius: 20px; cursor: pointer;
+  box-shadow: 0 6px 0 #a86e00, 0 8px 18px rgba(0,0,0,0.35);
+  transition: transform 0.06s, box-shadow 0.06s;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.composer-pad small { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.8rem; margin-top: 4px; letter-spacing: 0.1em; }
+.composer-pad:active { transform: translateY(5px); box-shadow: 0 1px 0 #a86e00; }
+.composer-pads .composer-pad { flex: 1; height: clamp(110px, 24vw, 150px); font-size: 3rem; }
+.composer-pad.space {
+  width: 100%; height: 74px; font-size: 1.6rem;
+  background: var(--ink-2); color: var(--cream);
+  box-shadow: 0 6px 0 var(--key-shadow); border: 2px solid var(--ink-3);
+}
+.composer-pad.space:active { box-shadow: 0 1px 0 var(--key-shadow); }
+.composer-pad.space small { color: var(--muted); }
+.composer-edit { display: flex; gap: 10px; justify-content: center; }
+.composer-edit .btn { padding: 12px 16px; font-size: 1rem; }
+
 /* ---------- Nivå-upp-overlay ---------- */
 .overlay {
   position: fixed; inset: 0; display: none;
@@ -321,6 +362,7 @@ h1 {
       <button class="btn" data-nav="practice"><span class="emoji">🎧</span><span>Träna lyssning<small>Hör ljudet – gissa bokstaven</small></span></button>
       <button class="btn ghost" data-nav="tapper"><span class="emoji">🔘</span><span>Sändarnyckeln<small>Knacka morse själv – maskinen översätter</small></span></button>
       <button class="btn ghost" data-nav="alphabet"><span class="emoji">📖</span><span>Morse-alfabetet<small>Tryck på en bokstav och lyssna</small></span></button>
+      <button class="btn ghost" data-nav="composer"><span class="emoji">·−</span><span>Punkt &amp; streck<small>Knappa ihop morse och kopiera – klistra in i SMS</small></span></button>
     </div>
     <div class="speed-label">HASTIGHET</div>
     <div class="speed-row">
@@ -391,6 +433,27 @@ h1 {
     <div class="alphabet" id="alphaLetters"></div>
     <div class="section-title">SIFFROR</div>
     <div class="alphabet" id="alphaDigits"></div>
+  </section>
+
+  <!-- ===== PUNKT & STRECK (morseskrivare) ===== -->
+  <section class="view" id="view-composer">
+    <div class="topbar">
+      <button class="btn ghost" data-nav="home">← Hem</button>
+      <button class="btn ghost" id="composerPlay">🔊 Lyssna</button>
+      <button class="btn" id="composerCopy">📋 Kopiera</button>
+    </div>
+    <div class="composer-out" id="composerOut">&nbsp;</div>
+    <div class="composer-plain" id="composerPlain" hidden><span id="composerPlainText"></span></div>
+    <label class="composer-toggle-row"><input type="checkbox" id="composerPlainToggle"> Visa i klartext</label>
+    <div class="composer-pads">
+      <button class="composer-pad dot" id="padDot">·<small>PUNKT</small></button>
+      <button class="composer-pad dash" id="padDash">−<small>STRECK</small></button>
+    </div>
+    <button class="composer-pad space" id="padSpace">␣<small>MELLANSLAG</small></button>
+    <div class="composer-edit">
+      <button class="btn ghost" id="composerBack">⌫ Ta bort</button>
+      <button class="btn ghost" id="composerClear">🗑 Rensa</button>
+    </div>
   </section>
 
 </div>
@@ -607,7 +670,7 @@ function save() {
 }
 
 /* ================= NAVIGATION ================= */
-const views = { home: 'view-home', practice: 'view-practice', tapper: 'view-tapper', alphabet: 'view-alphabet' };
+const views = { home: 'view-home', practice: 'view-practice', tapper: 'view-tapper', alphabet: 'view-alphabet', composer: 'view-composer' };
 let currentView = 'home';
 function show(name) {
   currentView = name;
@@ -1186,13 +1249,98 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* Lampan på hemskärmen blinkar "HEJ" ibland, som liv i maskinen */
-const lampHome = document.getElementById('lampHome');
-function idleBlink() {
-  if (currentView !== 'home' || !ctx) return;
-  playMorse(MORSE['E'], lampHome);
+/* ================= PUNKT & STRECK (morseskrivare) ================= */
+let composerText = '';
+const composerOutEl = document.getElementById('composerOut');
+const composerPlainEl = document.getElementById('composerPlain');
+const composerPlainTextEl = document.getElementById('composerPlainText');
+const composerPlainToggle = document.getElementById('composerPlainToggle');
+
+// Avkodar ·/−-strängen till bokstäver. Enkel-mellanslag = bokstavsgräns,
+// dubbelt mellanslag = ordgräns. Okänd grupp blir ¿.
+function decodeComposer(text) {
+  return text.split(' ').map(tok => {
+    if (tok === '') return ' ';
+    const code = tok.replace(/·/g, '.').replace(/−/g, '-');
+    return MORSE_REV[code] || '¿';
+  }).join('').replace(/\s+/g, ' ');
 }
-setInterval(idleBlink, 6000);
+function renderComposer() {
+  composerOutEl.textContent = composerText || ' ';
+  if (composerPlainToggle.checked) {
+    const plain = decodeComposer(composerText).trim();
+    composerPlainTextEl.innerHTML = plain
+      ? plain.replace(/¿/g, '<span class="q">¿</span>')
+      : '<span class="q">…</span>';
+  }
+}
+function composerAdd(sym) { composerText += sym; renderComposer(); }
+function composerBeep(sym) {
+  ensureCtx();
+  const u = SPEEDS[state.speed];
+  tone(ctx.currentTime + 0.01, (sym === '·' ? 1 : 3) * u / 1000);
+}
+document.getElementById('padDot').addEventListener('click', () => { composerBeep('·'); composerAdd('·'); });
+document.getElementById('padDash').addEventListener('click', () => { composerBeep('−'); composerAdd('−'); });
+document.getElementById('padSpace').addEventListener('click', () => composerAdd(' '));
+document.getElementById('composerBack').addEventListener('click', () => { composerText = composerText.slice(0, -1); renderComposer(); });
+document.getElementById('composerClear').addEventListener('click', () => { composerText = ''; renderComposer(); });
+composerPlainToggle.addEventListener('change', () => {
+  composerPlainEl.hidden = !composerPlainToggle.checked;
+  renderComposer();
+});
+
+// Lyssna: spela upp hela ·/−-strängen
+document.getElementById('composerPlay').addEventListener('click', () => {
+  if (!composerText.trim()) return;
+  ensureCtx(); cancelFlashes();
+  const u = SPEEDS[state.speed];
+  const t0 = ctx.currentTime;
+  let offset = 150;
+  for (const ch of composerText) {
+    if (ch === ' ') { offset += 2 * u; continue; } // 1u (efter förra) + 2u = 3u bokstavsgräns
+    const dur = (ch === '·' ? 1 : 3) * u;
+    tone(t0 + offset / 1000, dur / 1000);
+    offset += dur + u;
+  }
+});
+
+// Kopiera ·/−-strängen till urklipp (för inklistring i t.ex. SMS)
+function flashCopy(btn, msg) {
+  const orig = btn.dataset.orig || btn.textContent;
+  btn.dataset.orig = orig;
+  btn.textContent = msg;
+  setTimeout(() => { btn.textContent = btn.dataset.orig; }, 1400);
+}
+document.getElementById('composerCopy').addEventListener('click', async () => {
+  const btn = document.getElementById('composerCopy');
+  const text = composerText.trim();
+  if (!text) { flashCopy(btn, 'Inget att kopiera'); return; }
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text); ok = true;
+    }
+  } catch (e) { ok = false; }
+  if (!ok) { // fallback för äldre iOS Safari
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  flashCopy(btn, ok ? '✓ Kopierat!' : 'Kunde inte kopiera');
+});
+
+// Tangentbord: . och - och mellanslag och backsteg
+document.addEventListener('keydown', e => {
+  if (currentView !== 'composer') return;
+  if (e.key === '.') { composerBeep('·'); composerAdd('·'); }
+  else if (e.key === '-') { composerBeep('−'); composerAdd('−'); }
+  else if (e.key === ' ') { e.preventDefault(); composerAdd(' '); }
+  else if (e.key === 'Backspace') { e.preventDefault(); composerText = composerText.slice(0, -1); renderComposer(); }
+});
+
 </script>
 </body>
 </html>
