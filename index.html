@@ -729,19 +729,53 @@ function renderPractice() {
   }
 }
 
-function pickChar() {
-  let pool;
+/* Utjämnad slumppåse + adaptiv vikt:
+   - Varje tecken dras inom varje runda (påsen töms innan omblandning) → jämn täckning.
+   - I vanligt läge väger nivåns nya tecken tyngre (mer nötning på det man just lärt sig).
+   - Tecken man svarat fel på får extra kopior i påsen → dyker upp oftare tills man fixar dem. */
+let bag = [];
+let bagKey = '';
+const missCount = {}; // ch -> senaste antal fel (0–5)
+
+function currentPoolSpec() {
   if (state.custom) {
-    pool = state.customChars;
-  } else {
-    const fresh = LEVELS[state.level - 1];
-    const old = LEVELS.slice(0, state.level - 1).flat();
-    // 65 % chans för nivåns nya tecken, annars repetition
-    pool = (old.length === 0 || Math.random() < 0.65) ? fresh : old;
+    return { key: 'c:' + state.customChars.join(''), weights: state.customChars.map(ch => [ch, 1]) };
   }
-  let ch;
-  do { ch = pool[Math.floor(Math.random() * pool.length)]; }
-  while (ch === lastChar && pool.length > 1);
+  const fresh = LEVELS[state.level - 1];
+  const older = LEVELS.slice(0, state.level - 1).flat();
+  const weights = [];
+  fresh.forEach(ch => weights.push([ch, 3]));   // nya tecken tyngre
+  older.forEach(ch => weights.push([ch, 1]));   // repetition, men garanterat med
+  return { key: 'l:' + state.level, weights };
+}
+function refillBag() {
+  const spec = currentPoolSpec();
+  bagKey = spec.key;
+  bag = [];
+  for (const [ch, w] of spec.weights) {
+    const extra = Math.min(missCount[ch] || 0, 3); // adaptiv extravikt
+    for (let i = 0; i < w + extra; i++) bag.push(ch);
+  }
+  for (let i = bag.length - 1; i > 0; i--) { // Fisher–Yates
+    const j = Math.floor(Math.random() * (i + 1));
+    [bag[i], bag[j]] = [bag[j], bag[i]];
+  }
+  // Undvik att första tecknet i nya påsen är samma som det senaste
+  if (bag.length > 1 && bag[bag.length - 1] === lastChar) {
+    for (let k = bag.length - 2; k >= 0; k--) {
+      if (bag[k] !== lastChar) { [bag[bag.length - 1], bag[k]] = [bag[k], bag[bag.length - 1]]; break; }
+    }
+  }
+}
+function pickChar() {
+  const spec = currentPoolSpec();
+  if (spec.key !== bagKey || bag.length === 0) refillBag();
+  let ch = bag.pop();
+  if (ch === lastChar && bag.length > 0) { // säkerhetsnät mot direkt upprepning
+    const alt = bag.pop();
+    bag.push(ch);
+    ch = alt;
+  }
   return ch;
 }
 
@@ -776,6 +810,7 @@ function answer(ch) {
     setTimeout(() => lampP.classList.remove('good'), 500);
     state.streak++;
     state.correctInLevel++;
+    missCount[currentChar] = Math.max(0, (missCount[currentChar] || 0) - 1); // klarade det → tona ner
     const cheers = ['Snyggt! 🎉', 'Rätt! ⭐', 'Grymt! 💪', 'Wow! 🚀', 'Kanon! 🔥'];
     promptEl.innerHTML = `<span class="reveal">${currentChar}</span> = <span class="morse-glyph">${pretty(MORSE[currentChar])}</span><br>${cheers[Math.floor(Math.random() * cheers.length)]}`;
     document.querySelectorAll('.key').forEach(k => k.classList.remove('hint'));
@@ -793,6 +828,7 @@ function answer(ch) {
     lampP.classList.add('bad');
     setTimeout(() => lampP.classList.remove('bad'), 400);
     state.streak = 0;
+    missCount[currentChar] = Math.min(5, (missCount[currentChar] || 0) + 1); // svårt → visa oftare
     save(); renderPractice();
     promptEl.innerHTML = `Rätt svar: <span class="reveal">${currentChar}</span>&nbsp;= <span class="morse-glyph">${pretty(MORSE[currentChar])}</span>&nbsp;— tryck på den gröna! 👇`;
     const key = document.querySelector(`.key[data-char="${currentChar}"]`);
