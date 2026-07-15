@@ -298,6 +298,7 @@ h1 {
 }
 .level-card h2 { font-family: 'Bungee', cursive; color: var(--amber); font-size: 1.6rem; margin-bottom: 10px; }
 .level-card .new-chars { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 14px 0 20px; }
+.level-btns { display: flex; flex-direction: column; gap: 10px; }
 .lu-char .ch { font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; font-size: 1.7rem; color: var(--cream); }
 .lu-char .lu-code { color: var(--amber); font-size: 1.05rem; letter-spacing: 0.12em; }
 /* ---------- Facit-fusklappen ---------- */
@@ -512,7 +513,10 @@ h1 {
     <h2 id="levelTitle">NIVÅ 2!</h2>
     <div>Nya tecken att lära sig:</div>
     <div class="new-chars" id="levelChars"></div>
-    <button class="btn" id="levelContinue">Kör! 🚀</button>
+    <div class="level-btns">
+      <button class="btn" id="levelContinue">Kör! 🚀</button>
+      <button class="btn ghost" id="levelRepeat">🔁 Repetera nivå 1</button>
+    </div>
   </div>
 </div>
 
@@ -865,6 +869,8 @@ document.addEventListener('keydown', e => {
 /* ---- Nivå upp ---- */
 function showLevelUp() {
   playFanfare();
+  // state.level är redan uppräknad → nivån man just klarade är state.level - 1
+  document.getElementById('levelRepeat').textContent = '🔁 Repetera nivå ' + (state.level - 1);
   document.getElementById('levelTitle').textContent = 'NIVÅ ' + state.level + '!';
   document.getElementById('levelChars').innerHTML = LEVELS[state.level - 1].map(ch =>
     `<div class="lu-char"><div class="ch">${ch}</div><div class="lu-code">${pretty(MORSE[ch])}</div></div>`).join('');
@@ -881,6 +887,15 @@ function showLevelUp() {
   }
 }
 document.getElementById('levelContinue').addEventListener('click', () => {
+  document.getElementById('levelOverlay').classList.remove('show');
+  newQuestion();
+});
+document.getElementById('levelRepeat').addEventListener('click', () => {
+  // Gå tillbaka och nöt nivån man just klarade
+  state.level = Math.max(1, state.level - 1);
+  state.correctInLevel = 0;
+  save();
+  renderPractice();
   document.getElementById('levelOverlay').classList.remove('show');
   newQuestion();
 });
